@@ -2,9 +2,51 @@ using QuantumOptics
 using CairoMakie
 include("./Utils.jl")
 
+
+# function bloch_path!(lscene::LScene, times::Vector{<:Real}, states::Vector{<:StateVector})
+#     lines!(lscene, getindex.(blochs, 1), getindex.(blochs, 2), getindex.(blochs, 3), )
+#     return lscene
+# end
+
+function save_bloch_animation(times::Vector{<:Real}, states::Vector{<:StateVector}, length_seconds::Real, framerate::Int, filename::String; title="")
+    number_of_frames = Int(length_seconds * framerate)
+    number_of_time_steps = length(times)
+    times_between_frames = (number_of_time_steps-1) / number_of_frames
+
+    frame = Observable{Int}(1)
+
+    fig = Figure()
+    gp = fig[1,1]
+    lscene = LScene(gp, 
+        show_axis = false,
+        )
+
+    cam3d!(lscene)
+    mesh!(lscene, Sphere(Point3f(0), 1), color=(:gray, 0.2))
+    
+    range = @lift(1:trunc(Int, times_between_frames*$frame+1))
+    times_i = @lift(times[$range])
+    states_i = @lift(states[$range])
+    blochs = @lift(statevectorToBlochvector.($states_i))
+
+    blochX = @lift(getindex.($blochs, 1))
+    blochY = @lift(getindex.($blochs, 2))
+    blochZ = @lift(getindex.($blochs, 3))
+    lines!(lscene, blochX, blochY, blochZ)
+    final_vec = @lift(Vec3f($blochs[end]))
+    arrows3d!(lscene, Point3f(0,0,0), final_vec , markerscale = 0.3, tiplength = 0.2)
+    text!(lscene, 0, 0, 1.25, text=title, align=(0.5,0))
+    
+    anim = record(fig, filename, (0:number_of_frames), framerate=framerate) do frame_number
+        frame[] = frame_number
+    end
+    return anim
+end
+
 """
 Takes in some sort of 2-Vector{ComplexF64} 
-and makes a plot on a bloch sphere
+and makes a plot on a bloch Sphere
+Right now it does not use the `times` input.
 """
 function bloch_plot!(gp::GridPosition, times::Vector{<:Real}, states::Vector{<:StateVector}; title="")
     lscene = LScene(gp, 
@@ -14,7 +56,7 @@ function bloch_plot!(gp::GridPosition, times::Vector{<:Real}, states::Vector{<:S
         )
 
     cam3d!(lscene)
-    sphere_plot = mesh!(lscene, Sphere(Point3f(0), 1), color=(:gray, 0.2))
+    mesh!(lscene, Sphere(Point3f(0), 1), color=(:gray, 0.2))
     blochs = statevectorToBlochvector.(states)
     lines!(lscene, getindex.(blochs, 1), getindex.(blochs, 2), getindex.(blochs, 3), )
     # CairoMakie.rotate!(lscene, Vec3f(0, 1, 0), 0.5) # 0.5 rad around the y axis
