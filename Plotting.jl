@@ -86,11 +86,24 @@ HamiltonianTD : Real -> Operator
 """
 function alignment_plot!(gp::GridPosition, times::Vector{<:Real}, states::Vector{<:StateVector}, HamiltonianTD::Function)
     ax = Axis(gp, xlabel = "Time", ylabel = "Instantaneous Probability", 
-              title = L"Alignment with $\hat{H}$ Eigenvector", limits = (nothing, (0-0.1,1+0.1)))
+              title = L"Probability Alignment with $\hat{H}$ Eigenvector", limits = (nothing, (0-0.1,1+0.1)))
     hamiltonian_eigenkets = getindex.(eigenstates.(dense.(HamiltonianTD.(times))), 2)
     bra_states = dagger.(states)
     for i in (1:length(hamiltonian_eigenkets[1])) # For each eigenstate at t
         lines!(ax, times, abs2.(bra_states .* getindex.(hamiltonian_eigenkets, i)))
+    end
+    return ax
+end
+
+function alignment_angle_plot!(gp::GridPosition, times::Vector{<:Real}, states::Vector{<:StateVector}, HamiltonianTD::Function)
+    ax = Axis(gp, xlabel = "Time", ylabel = "Angular Distance", 
+              title = L"Angular Alignment with $\hat{H}$ Eigenvector", 
+              yticks = ([0, π/2, π], ["0", "π/2", "π"]), limits = (nothing, (0-0.1, π+0.1)))
+    hamiltonian_eigenkets = getindex.(eigenstates.(dense.(HamiltonianTD.(times))), 2)
+    bra_states = dagger.(states)
+    for i in (1:length(hamiltonian_eigenkets[1])) # For each eigenstate at t
+        probability = abs2.(bra_states .* getindex.(hamiltonian_eigenkets, i))
+        lines!(ax, times, acos.(sqrt.(probability)))
     end
     return ax
 end
