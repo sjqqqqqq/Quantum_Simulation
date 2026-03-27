@@ -8,7 +8,7 @@ include("./Utils.jl")
 #     return lscene
 # end
 
-function save_bloch_animation(times::Vector{<:Real}, states::Vector{<:StateVector}, length_seconds::Real, framerate::Int, filename::String; title="")
+function save_bloch_animation(times, states::Vector{<:StateVector}, length_seconds::Real, framerate::Int, filename::String; title="")
     number_of_frames = Int(length_seconds * framerate)
     number_of_time_steps = length(times)
     times_between_frames = (number_of_time_steps-1) / number_of_frames
@@ -48,7 +48,7 @@ Takes in some sort of 2-Vector{ComplexF64}
 and makes a plot on a bloch Sphere
 Right now it does not use the `times` input.
 """
-function bloch_plot!(gp::GridPosition, times::Vector{<:Real}, states::Vector{<:StateVector}; title="")
+function bloch_plot!(gp::GridPosition, times, states::Vector{<:StateVector}; title="")
     lscene = LScene(gp, 
         show_axis = false,
         # tellwidth = false,
