@@ -17,3 +17,8 @@ docs/build/
 # OS
 .DS_Store
 Thumbs.db
+
+# 
+*.jld2
+*.png
+*.pdf
