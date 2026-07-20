@@ -17,3 +17,7 @@ docs/build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Text and Png
+*.png
+*.txt
