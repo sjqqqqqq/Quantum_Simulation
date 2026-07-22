@@ -15,10 +15,14 @@ H1 = [0   1/2 0  0  0;      # Omega drive
 H2 = Diagonal([0, -1, 0, -1, -2])          # Delta detuning (per Rydberg excitation)
 
 # pulses Δ(t) and Ω(t)  (same as CZ_sim.jl)
-T::Real = 1.273166
-Ω_max::Real = 2.45025
-Δ₀ = 4.08
-Δ_min = 0.328
+# T::Real = 1.273166
+# Ω_max::Real = 2.45025
+# Δ₀ = 4.08
+# Δ_min = 0.328
+T::Real = 1.0
+Ω_max::Real = 3.2117568534275422
+Δ₀ = 3.4625894392043244
+Δ_min = 0.7858595116917642
 Vrr = 100                                   # finite blockade
 Hint = Diagonal(Vrr * [0, 0, 0, 0, 1])      # rr interaction, same units as Ω,Δ
 Ω_points = [0.0, 0.277, 0.556, 0.833, 1.0, 1.0, 0.833, 0.556, 0.277, 0.0]
