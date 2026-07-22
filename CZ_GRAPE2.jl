@@ -28,19 +28,13 @@ H = hamiltonian((H_Ω, Ω_guess), (H_Δ, Δ_guess))
 ket_01 = ComplexF64[1, 0, 0, 0]
 ket_11 = ComplexF64[0, 0, 1, 0]
 
-# The target states only define the overlaps τ = (u01, u11); the phases φ01,
-# φ11 are NOT fixed here — the functional below only constrains their relation.
+
 trajectories = [
     Trajectory(ket_01, H; target_state=ket_01),
     Trajectory(ket_11, H; target_state=ket_11),
 ]
 
-# With u01 = ⟨01|Ψ01(T)⟩ and u11 = ⟨11|Ψ11(T)⟩, the gate in the computational
-# basis is U = diag(1, u01, u01, u11). U is a CZ up to single-qubit Z rotations
-# iff |u01| = |u11| = 1 and 2φ01 - φ11 = -π, i.e. u01² ū11 = -1. Since
-# |u01² ū11| ≤ 1, the single condition u01² ū11 = -1 captures both population
-# return and the phase relation:
-#
+
 #   J_T = (1 + Re[u01² ū11]) / 2  ∈ [0, 1],   J_T = 0 ⇔ CZ-equivalent gate
 function J_T_CZ(Ψ, trajectories; tau=nothing, τ=tau)
     if τ === nothing
@@ -50,9 +44,7 @@ function J_T_CZ(Ψ, trajectories; tau=nothing, τ=tau)
     return (1 + real(u01^2 * conj(u11))) / 2
 end
 
-# Boundary states χₖ = -∂J_T/∂⟨Ψₖ| (Wirtinger derivative, ūₖ = ⟨Ψₖ|targetₖ⟩):
-# J_T = 1/2 + (u01² ū11 + ū01² u11)/4, so
-#   χ01 = -(ū01 u11 / 2) |01⟩,   χ11 = -(u01² / 4) |11⟩
+
 # (see CZ_GRAPE2_costate.md for the derivation)
 function chi_CZ(Ψ, trajectories; tau=nothing, τ=tau)
     if τ === nothing
