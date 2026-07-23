@@ -1,0 +1,16 @@
+name = "RydbergUtils"
+uuid = "30a4eff7-2ae0-41d9-b1f2-647bc087878d"
+version = "0.1.0"
+authors = ["trlarkin <tristanjlarkin@gmail.com>"]
+
+[deps]
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+QuantumOptics = "6e0679c1-51ea-5a7c-ac74-d61b76210b0c"
+
+[compat]
+CairoMakie = "0.15.11"
+Interpolations = "0.16.2"
+LinearAlgebra = "1.12.0"
+QuantumOptics = "1.2.6"
