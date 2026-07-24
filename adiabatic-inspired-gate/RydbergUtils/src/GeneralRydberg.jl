@@ -34,7 +34,7 @@ srr = sr ⊗ sr
 
 """Couples the |1⟩ and |r⟩ states within the three level single atom basis. Takes T time."""
 function rydbergLaser(Δ::Function, Ω::Function, ϕ::Function, T::Real) :: HamiltonianTL
-    I, σx, σy, σz = pauliGenerator(sr, s1)
+    I, σx, σy, σz = pauliGenerator(s1, sr)
     H(t) = cos(ϕ(t))*Ω(t)*σx/2 + sin(ϕ(t))*Ω(t)*σy/2 - Δ(t)*I/2 - Δ(t)*σz/2
     return HamiltonianTL(H, T)
 end
@@ -42,7 +42,7 @@ end
 function nineLevelBlockade(Δ::Function, Ω::Function, ϕ::Function, T::Real; Vrr=100)
     Hₐ = getH_t(rydbergLaser(Δ, Ω, ϕ, T))
     I = identityoperator(Hₐ(0))
-    H(t) = Hₐ(t) ⊗ I + I ⊗ Hₐ(t) + Vrr*srr*srr'
+    H(t) = Hₐ(t) ⊗ I + I ⊗ Hₐ(t) + 2π*Vrr*srr*srr'
 
     return HamiltonianTL(H, T)
 end
