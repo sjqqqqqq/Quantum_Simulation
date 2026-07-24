@@ -39,7 +39,7 @@ function rydbergLaser(Δ::Function, Ω::Function, ϕ::Function, T::Real) :: Hami
     return HamiltonianTL(H, T)
 end
 
-function nineLevelBlockade(Δ::Function, Ω::Function, ϕ::Function, T::Real; Vrr=100)
+function nineLevelBlockade(Δ::Function, Ω::Function, ϕ::Function, T::Real; Vrr=1000)
     Hₐ = getH_t(rydbergLaser(Δ, Ω, ϕ, T))
     I = identityoperator(Hₐ(0))
     H(t) = Hₐ(t) ⊗ I + I ⊗ Hₐ(t) + 2π*Vrr*srr*srr'
@@ -79,7 +79,7 @@ function iba_Hamiltonian(;T::Real=1.273166, Ω_max::Real=2.45025, Δ₀=4.08, Δ
 end
 
 """Fidelity is all measured as CZ"""
-function test_entangling_gate(gate::CompositeHamiltonianTL; ϕ_target=π, upToSymmetricLocalOps=false)
+function test_entangling_gate(gate; ϕ_target=π, upToSymmetricLocalOps=false)
     res00 = schroedingerTimeEvolve(s00, gate)
     res01 = schroedingerTimeEvolve(s01, gate)
     res11 = schroedingerTimeEvolve(s11, gate)
