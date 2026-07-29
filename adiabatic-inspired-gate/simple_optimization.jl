@@ -10,59 +10,35 @@ R = symmetricRamanLaserNineLevel([π, 0, 0], 0.1)
 CZ_echo = CompositeHamiltonianTL([iba, R, iba, R])
 test_entangling_gate(CZ_echo, upToSymmetricLocalOps=true)
 
-T=1.273166; Ω_max::Real=2.45025; Δ₀=4.08; Δ_min=0.328;  Vrr=1000;
-# Ω_points = [0.0, 0.277, 0.556, 0.833, 1.0, 1.0, 0.833, 0.556, 0.277, 0.0]
-# Δ_points = [1.0, 0.75, 0.5, 0.25, 0.1, 0.1, 0.25, 0.5, 0.75, 1.0]
-
-# ts = range(0, T, length(Ω_points))
-# tmp(t) = cubic_spline_interpolation(ts, Δ_points)(t)
-# tmp_min = tmp(T/2)
-# Δ(t) = 2π * (tmp(t)+(Δ_min/Δ₀-tmp_min))*Δ₀/(1-tmp_min+Δ_min/Δ₀)
-# Ω(t) = Ω_max*2π * cubic_spline_interpolation(ts, Ω_points)(t)
-# ϕ(t) = 0
-
-# plot_times = range(0, T, 100)
-# fig = Figure()
-# ax = Axis(fig[1,1])
-# lines!(ax, plot_times, Δ.(plot_times))
-# display(fig)
-
 #### optimizing over Ω_max, Δ₀, Δ_min
 struct MySimplexer <: Optim.Simplexer end
 Optim.simplexer(S::MySimplexer, initial_x) = [rand(length(initial_x)) for i = 1:length(initial_x)+1]
 
-# BUG FIX: plain `NelderMead()` silently ignores the lower/upper bounds passed to `optimize` —
-# confirmed with a toy 2D quadratic whose true minimum sits outside a test box: Optim returned it
-# completely unclamped. `Fminbox(NelderMead())` looks like the fix, but is unreliable here: it
-# requires computing a gradient of the (black-box, ODE-based) objective via finite differences,
-# and in testing it reported spurious "success" after 2 outer iterations while still returning a
-# point outside the box (Δ₀=6.145 > upper=4.5). Since this objective has no usable gradient anyway
-# (it's a Schrödinger-propagation fidelity, not an analytic function), the robust fix for a
-# derivative-free method is a quadratic exterior penalty: reject out-of-bounds X with a cost that
-# is always worse than any feasible value (1-F ∈ [0,1]) and grows back toward the feasible region.
-lower = [0.1, 0.5, 0.4]
-upper = [4, 10, 4.]
+#bounds = [Ω_max, C_Ω, F_Ω, Δ₀, Δ_min, C_Δ, F_Δ] 
+lower = [0.1, -1, 0, 0.5, 0.4, -1, 0]
+upper = [4, 1, 1, 10, 8, 1, 1]
 
 function box_penalty(X)
     return sum(max(lo - x, 0, x - hi)^2 for (x, lo, hi) in zip(X, lower, upper))
 end
 
 #### NEW: sweep the same 3-parameter optimization over multiple gate times T
-T_values = reverse(range(0.5, 1.0, length=20))
+# T_values = reverse(range(0.5, 1.0, length=6))
+T_values = [1.0]
 
 function f_at_T(X, T)
     pen = box_penalty(X)
     pen > 0 && return 1.0 + pen
-    (Ω_max, Δ₀, Δ_min) = X
-    iba = iba_Hamiltonian(T=T, Ω_max=Ω_max, Δ₀=Δ₀, Δ_min=Δ_min)
-    R = symmetricRamanLaserNineLevel([π, 0, 0], 0.1)
+    (Ω_max, C_Ω, F_Ω, Δ₀, Δ_min, C_Δ, F_Δ) = X
+    iba = general_iba_Hamiltonian(T=T, Ω_max=Ω_max, C_Ω=C_Ω, F_Ω=F_Ω, Δ₀=Δ₀, Δ_min=Δ_min, C_Δ=C_Δ, F_Δ=F_Δ, Γᵣ=0) 
+    R = symmetricRamanLaserNineLevel([π, 0, 0], 1)
     CZ_echo = CompositeHamiltonianTL([iba, R, iba, R])
     _, _, _, F, _, _ = test_entangling_gate(CZ_echo, upToSymmetricLocalOps=true)
     return 1 - F
 end
 
 sweep_results = NamedTuple[]
-sweep_guess = [3.2117568534275422, 3.4625894392043244, 0.7858595116917642]  # guess is from a prior optimization
+sweep_guess = [3.212, 0, 0.65, 3.463, 0.7858, 0, 0.65] # T=1
 for T in T_values
     res_T = Optim.optimize(X -> f_at_T(X, T), sweep_guess, NelderMead(), Optim.Options(iterations=1000, g_abstol=1e-8))
     x_opt = Optim.minimizer(res_T)
@@ -166,7 +142,7 @@ for (k, r) in enumerate(sweep_results)
     iba = iba_Hamiltonian(T=r.T, Ω_max=r.Ω_max, Δ₀=r.Δ₀, Δ_min=r.Δ_min, Vrr=1000)
     iba_gate=CompositeHamiltonianTL([iba])
     CZ=CompositeHamiltonianTL([iba, iba])
-    println("√CZ:", test_entangling_gate(iba_gate, ϕ_target=-π/2, upToSymmetricLocalOps=true)[4], 
+    println("T = $(r.T), √CZ:", test_entangling_gate(iba_gate, ϕ_target=π/2, upToSymmetricLocalOps=true)[4], 
     " -- CZ:", test_entangling_gate(CZ, ϕ_target=π, upToSymmetricLocalOps=true)[4])
 end
 
@@ -183,7 +159,7 @@ tmp_min = tmp(T/2)
 Ω(t) = Ω_max*2π * cubic_spline_interpolation(ts, Ω_points)(t)
 
 pulse_fig = Figure()
-axΩ = Axis(pulse_fig[1,1], yticklabelcolor = :blue, title="Pulse Shapes for 1 μs pulse, F = 999995", ylabel="Ω(t) [2π MHz]", xlabel="t (μs)")
+axΩ = Axis(pulse_fig[1,1], yticklabelcolor = :blue, title="Pulse Shapes for 1 μs pulse, F = 99998", ylabel="Ω(t) [2π MHz]", xlabel="t (μs)")
 axΔ = Axis(pulse_fig[1, 1], yticklabelcolor = :red, yaxisposition = :right, ylabel = "Δ(t) [2π MHz]")
 
 times = range(0, T, 200)

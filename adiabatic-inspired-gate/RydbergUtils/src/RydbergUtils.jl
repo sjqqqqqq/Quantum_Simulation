@@ -15,6 +15,7 @@ export blockade_states, twoLevelSysHamiltonian, symmetricRamanLaserNineLevel,
 
 include("./GeneralRydberg.jl")
 export t01, t10, t1r, tr1, s0, s1, sr, s₊, s₋, sR, sL, s00, s01, s10, s11, srr,
-    rydbergLaser, nineLevelBlockade, ramanLaser, iba_Hamiltonian, test_entangling_gate
+    rydbergLaser, nineLevelBlockade, ramanLaser, iba_Hamiltonian, test_entangling_gate,
+    general_iba_Hamiltonian
 
 end # module RydbergUtils
