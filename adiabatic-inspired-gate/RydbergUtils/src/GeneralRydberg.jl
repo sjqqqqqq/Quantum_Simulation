@@ -108,12 +108,12 @@ parameters than the original IBA gate. the Q₀ and Q_max should be obvious. The
 the curvature of the beginning of the pulse, and F_Q controls the point where the first 
 parabola connects to the second."""
 function general_iba_Hamiltonian(;T=1.273166, 
-                                 Ω₀=0, Ω_max=2.45025*2π, C_Ω=0, F_Ω=0.65, 
-                                 Δ₀=4.08*2π, Δ_min=0.328*2π, C_Δ=0, F_Δ=0.65,  
+                                 Ω₀=0, Ω_max=2.45025, C_Ω=0, F_Ω=0.65, 
+                                 Δ₀=4.08, Δ_min=0.328, C_Δ=0, F_Δ=0.65,  
                                  Vrr=1000, Γᵣ=0)
 
-    Δ = pulse_generator(Δ₀, Δ_min, C_Δ, F_Δ, T)
-    Ω = pulse_generator(Ω₀, Ω_max, C_Ω, F_Ω, T)
+    Δ(t) = 2π*pulse_generator(Δ₀, Δ_min, C_Δ, F_Δ, T)(t)   
+    Ω(t) = 2π*pulse_generator(Ω₀, Ω_max, C_Ω, F_Ω, T)(t)
     ϕ(t) = 0
 
     return nineLevelBlockade(Δ, Ω, ϕ, T; Vrr=Vrr)
