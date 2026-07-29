@@ -2,7 +2,7 @@ using RydbergUtils
 using Optim
 using CairoMakie
 
-iba = iba_Hamiltonian()
+iba = iba = general_iba_Hamiltonian(T=1, Ω_max=3.212, C_Ω=0, F_Ω=0.65, Δ₀=3.463, Δ_min=0.7858, C_Δ=0, F_Δ=0.65, Γᵣ=0) 
 CZ = CompositeHamiltonianTL([iba, iba])
 test_entangling_gate(CZ, upToSymmetricLocalOps=true)
 
