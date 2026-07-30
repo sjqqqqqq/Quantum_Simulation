@@ -1,30 +1,41 @@
 using RydbergUtils
 using Optim
 using CairoMakie
+using Printf
+using QuantumOptics
+# using Interpolations
 
-iba = iba = general_iba_Hamiltonian(T=1, Ω_max=3.212, C_Ω=0, F_Ω=0.65, Δ₀=3.463, Δ_min=0.7858, C_Δ=0, F_Δ=0.65, Γᵣ=0) 
-CZ = CompositeHamiltonianTL([iba, iba])
-test_entangling_gate(CZ, upToSymmetricLocalOps=true)
+### Create the directory for all the outputs
 
-R = symmetricRamanLaserNineLevel([π, 0, 0], 0.1)
-CZ_echo = CompositeHamiltonianTL([iba, R, iba, R])
-test_entangling_gate(CZ_echo, upToSymmetricLocalOps=true)
+runID = ARGS[1]
+directory_name = @sprintf "%d-%s" time() runID
+mkdir(directory_name)
+cd(directory_name)
 
-#### optimizing over Ω_max, Δ₀, Δ_min
+general_info_file = "./0-Run-Overview.txt"
+gen_info(str) = write(general_info_file, "$str\n")
+
+### Use Optimizer to find good gates
+
 struct MySimplexer <: Optim.Simplexer end
 Optim.simplexer(S::MySimplexer, initial_x) = [rand(length(initial_x)) for i = 1:length(initial_x)+1]
 
-#bounds = [Ω_max, C_Ω, F_Ω, Δ₀, Δ_min, C_Δ, F_Δ] 
-lower = [0.1, -1, 0, 0.5, 0.4, -1, 0]
-upper = [4, 1, 1, 10, 8, 1, 1]
+## Choose bounds
+parameters = ["Ω_max", "C_Ω", "F_Ω", "Δ₀", "Δ_min", "C_Δ", "F_Δ"] 
+units = ["2π MHz", "", "", "2π MHz", "2π MHz", "", ""]
+lower = [0.1, -1, 0, 0.5, 0.4, -1, 0] # EDIT THIS
+upper = [4, 1, 1, 10, 8, 1, 1] # EDIT THIS
+lu = ["$name: [$l $unit, $u $unit]" for name, unit, l, u in zip(parameters, units, lower, upper)]
+gen_info("The bounds we set on optimization are:")
+for s in lu
+    gen_info(s)
+end
 
+
+"""Don't let it leave the bounds"""
 function box_penalty(X)
     return sum(max(lo - x, 0, x - hi)^2 for (x, lo, hi) in zip(X, lower, upper))
 end
-
-#### NEW: sweep the same 3-parameter optimization over multiple gate times T
-# T_values = reverse(range(0.5, 1.0, length=6))
-T_values = [1.0]
 
 function f_at_T(X, T)
     pen = box_penalty(X)
@@ -37,13 +48,19 @@ function f_at_T(X, T)
     return 1 - F
 end
 
+## Choose the lengths of the √CZ gates to optimize for
+T_values = [1.0] # EDIT THIS
+gen_info("The times we are optimizing over are: $T_values;")
+
 sweep_results = NamedTuple[]
-sweep_guess = [3.212, 0, 0.65, 3.463, 0.7858, 0, 0.65] # T=1
+sweep_guess = [3.212, 0, 0.65, 3.463, 0.7858, 0, 0.65] # T=1 # EDIT THIS
+gen_info("Our initial Guess is $parameters = $sweep_guess")
+
 for T in T_values
     res_T = Optim.optimize(X -> f_at_T(X, T), sweep_guess, NelderMead(), Optim.Options(iterations=1000, g_abstol=1e-8))
     x_opt = Optim.minimizer(res_T)
     F_opt = 1 - Optim.minimum(res_T)
-    push!(sweep_results, (T=T, Ω_max=x_opt[1], Δ₀=x_opt[2], Δ_min=x_opt[3], F=F_opt))
+    push!(sweep_results, (T=T, opt_parameters=x_opt, F=F_opt))
     sweep_guess = x_opt  # warm-start the next T from this T's optimum (continuation)
     @info "T=$T -> F=$F_opt, (Ω_max, C_Ω, F_Ω, Δ₀, Δ_min, C_Δ, F_Δ)=$x_opt"
 end
@@ -55,27 +72,14 @@ scatter!(ax_sweep, [r.T for r in sweep_results], [1-r.F for r in sweep_results])
 display(fig_sweep)
 
 
-using Printf
 open("how-fast-can-we-get.txt", "w") do file
     [write(file, "$sweep_result", "\n") for sweep_result in sweep_results]
 end
 save("how-fast-can-we-get.png", fig_sweep)
 
-### Making plots
+### Robustness testing
 
-#### NEW: robustness of each swept optimum to Ω_max/Δ perturbations, plotted as heatmaps.
-# For every (T, Ω_max, Δ₀, Δ_min) found in sweep_results, scan Ω_max by ±5% of itself and scan
-# Δ by ±5% of Δ₀ (in 1% steps each — 11x11=121 grid points), where the Δ scan adds the SAME
-# absolute shift to both Δ₀ and Δ_min (rather than scaling each independently, since Δ_min is
-# small enough that a percentage of itself would be a nearly-degenerate scan). Infidelity
-# (1-F) is recomputed at each grid point for both the plain iba-iba sequence and the
-# iba-R-iba-R (echo) sequence, using iba_Hamiltonian directly, and plotted on a log color scale
-# since infidelity commonly spans several orders of magnitude across the scan.
-#
-# NOTE ON COST: this is 25 T-values × 2 sequences × 121 grid points = 6,050 full 9-level
-# Schroedinger-propagation fidelity evaluations (3 propagations each, for s00/s01/s11) — this can
-# take a long time to run in full. Consider trying it on a subset of sweep_results first (e.g.
-# sweep_results[1:2]) to gauge how long one T takes before launching the entire sweep.
+## Homogenous/Common Mode Error - with and without spin echo
 
 robustness_dir = "./graphics/0_9-to-1_2-plots"
 mkpath(robustness_dir)
@@ -151,7 +155,6 @@ T = 1
 Ω_points = [0.0, 0.277, 0.556, 0.833, 1.0, 1.0, 0.833, 0.556, 0.277, 0.0]
 Δ_points = [1.0, 0.75, 0.5, 0.25, 0.1, 0.1, 0.25, 0.5, 0.75, 1.0]
 
-using Interpolations
 ts = range(0, T, length(Ω_points))
 tmp(t) = cubic_spline_interpolation(ts, Δ_points)(t)
 tmp_min = tmp(T/2)

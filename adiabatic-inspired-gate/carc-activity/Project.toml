@@ -1,0 +1,4 @@
+[deps]
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+RydbergUtils = "30a4eff7-2ae0-41d9-b1f2-647bc087878d"
